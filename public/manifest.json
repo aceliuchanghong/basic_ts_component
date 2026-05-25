@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "我的第一个 TS",
+  "version": "1.0.0",
+  "description": "TS 开发",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["storage"]
+}
