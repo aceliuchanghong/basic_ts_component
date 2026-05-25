@@ -1,17 +1,22 @@
 {
   "name": "ts_template",
   "version": "1.0.0",
-  "description": "ts 模板",
-  "main": "index.js",
+  "description": "TS 登录组件 - 基于 Supabase",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "dev:test": "vite --port 3000",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "test:auth": "vite --port 3000 --open auth-test.html"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.2"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
   }
 }

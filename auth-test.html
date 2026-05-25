@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录组件测试</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 30px; color: #00d4ff; }
+    .section {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    h2 { margin-bottom: 16px; color: #00d4ff; font-size: 18px; }
+    button {
+      background: #0f3460;
+      color: #fff;
+      border: 1px solid #00d4ff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 6px 6px 6px 0;
+      transition: all 0.2s;
+    }
+    button:hover { background: #00d4ff; color: #1a1a2e; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input {
+      background: #0f3460;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 6px 6px 6px 0;
+    }
+    input:focus { outline: none; border-color: #00d4ff; }
+    .status {
+      padding: 16px;
+      background: #0f3460;
+      border-radius: 8px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log { color: #aaa; font-size: 13px; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #60a5fa; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  </style>
+</head>
+<body>
+  <h1>登录组件测试</h1>
+
+  <div class="section">
+    <h2>配置状态</h2>
+    <div class="status" id="configStatus">检查中...</div>
+  </div>
+
+  <div class="section">
+    <h2>OAuth 扫码登录</h2>
+    <div class="buttons">
+      <button onclick="testLogin('google')">Google</button>
+      <button onclick="testLogin('github')">GitHub</button>
+    </div>
+    <p style="color: #888; font-size: 13px; margin-top: 10px;">
+      注：支付宝/微信需要单独对接（Supabase 不内置）
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>邮箱登录</h2>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <input type="email" id="email" placeholder="邮箱地址" value="test@example.com">
+      <input type="password" id="password" placeholder="密码（邮箱登录用）">
+      <button onclick="testEmailLogin()">邮箱密码登录</button>
+      <button onclick="testMagicLink()">发送 Magic Link</button>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+      <input type="text" id="emailCode" placeholder="验证码">
+      <button onclick="testVerifyEmailOtp()">验证邮箱验证码</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>手机登录</h2>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <input type="tel" id="phone" placeholder="手机号" value="+8613800138000">
+      <button onclick="testPhoneOtp()">发送验证码</button>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+      <input type="text" id="phoneCode" placeholder="验证码">
+      <button onclick="testVerifyPhoneOtp()">验证手机验证码</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>当前用户</h2>
+    <div class="buttons">
+      <button onclick="getCurrentUser()">获取当前用户</button>
+      <button onclick="logout()" style="border-color: #f87171;">登出</button>
+    </div>
+    <div class="status" id="userStatus">未登录</div>
+  </div>
+
+  <div class="section">
+    <h2>日志</h2>
+    <div class="status" id="logArea" style="max-height: 300px;"></div>
+  </div>
+
+  <script type="module">
+    import { createAuth } from './src/auth/index.ts';
+    import { getSupabaseConfig } from './src/auth/config.ts';
+
+    const config = getSupabaseConfig();
+    const auth = createAuth(config);
+
+    // 日志函数
+    function log(msg, type = 'info') {
+      const area = document.getElementById('logArea');
+      const time = new Date().toLocaleTimeString();
+      area.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // 显示配置状态
+    if (config.url && config.anonKey) {
+      document.getElementById('configStatus').innerHTML =
+        `<span class="success">✅ 已配置</span>\nURL: ${config.url}`;
+    } else {
+      document.getElementById('configStatus').innerHTML =
+        `<span class="error">❌ 未配置</span>\n请在 .env 中设置:\nVITE_SUPABASE_URL\nVITE_SUPABASE_ANON_KEY`;
+    }
+
+    // OAuth 登录
+    window.testLogin = async function(provider) {
+      log(`发起 ${provider} 登录...`);
+      const result = await auth[`loginWith${provider.charAt(0).toUpperCase() + provider.slice(1)}`]();
+      if (result.success) {
+        log(`✅ ${provider} 登录成功 (将跳转到OAuth页面)`, 'success');
+      } else {
+        log(`❌ ${provider} 登录失败: ${result.error}`, 'error');
+      }
+    };
+
+    // 邮箱登录
+    window.testEmailLogin = async function() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      log(`邮箱登录: ${email}`);
+      const result = await auth.loginWithEmail(email, password);
+      if (result.success) {
+        log(`✅ 登录成功: ${result.user?.email}`, 'success');
+        updateUserStatus(result.user);
+      } else {
+        log(`❌ 登录失败: ${result.error}`, 'error');
+      }
+    };
+
+    // Magic Link
+    window.testMagicLink = async function() {
+      const email = document.getElementById('email').value;
+      log(`发送 Magic Link 到: ${email}`);
+      const result = await auth.loginWithMagicLink(email);
+      if (result.success) {
+        log(`✅ Magic Link 已发送，请查收邮箱`, 'success');
+      } else {
+        log(`❌ 发送失败: ${result.error}`, 'error');
+      }
+    };
+
+    // 邮箱验证码验证
+    window.testVerifyEmailOtp = async function() {
+      const email = document.getElementById('email').value;
+      const code = document.getElementById('emailCode').value;
+      log(`验证邮箱验证码: ${code}`);
+      const result = await auth.verifyEmailOtp(email, code);
+      if (result.success) {
+        log(`✅ 验证成功`, 'success');
+        updateUserStatus(result.user);
+      } else {
+        log(`❌ 验证失败: ${result.error}`, 'error');
+      }
+    };
+
+    // 手机验证码
+    window.testPhoneOtp = async function() {
+      const phone = document.getElementById('phone').value;
+      log(`发送手机验证码: ${phone}`);
+      const result = await auth.loginWithPhone(phone);
+      if (result.success) {
+        log(`✅ 验证码已发送`, 'success');
+      } else {
+        log(`❌ 发送失败: ${result.error}`, 'error');
+      }
+    };
+
+    // 手机验证码验证
+    window.testVerifyPhoneOtp = async function() {
+      const phone = document.getElementById('phone').value;
+      const code = document.getElementById('phoneCode').value;
+      log(`验证手机验证码: ${code}`);
+      const result = await auth.verifyPhoneOtp(phone, code);
+      if (result.success) {
+        log(`✅ 验证成功`, 'success');
+        updateUserStatus(result.user);
+      } else {
+        log(`❌ 验证失败: ${result.error}`, 'error');
+      }
+    };
+
+    // 获取当前用户
+    window.getCurrentUser = async function() {
+      const user = await auth.getCurrentUser();
+      updateUserStatus(user);
+      if (user) {
+        log(`✅ 已登录: ${user.email || user.phone}`, 'success');
+      } else {
+        log(`❌ 未登录`, 'error');
+      }
+    };
+
+    // 登出
+    window.logout = async function() {
+      await auth.logout();
+      document.getElementById('userStatus').textContent = '已登出';
+      log(`🚪 已登出`, 'info');
+    };
+
+    // 更新用户状态显示
+    function updateUserStatus(user) {
+      const status = document.getElementById('userStatus');
+      if (user) {
+        status.innerHTML = `<span class="success">✅ 已登录</span>\n` +
+          `ID: ${user.id}\n` +
+          `邮箱: ${user.email || '-'}\n` +
+          `手机: ${user.phone || '-'}\n` +
+          `名称: ${user.name || '-'}\n` +
+          `Provider: ${user.provider || '-'}`;
+      } else {
+        status.textContent = '未登录';
+      }
+    }
+
+    // 订阅认证事件
+    auth.subscribe((event) => {
+      log(`📢 事件: ${event.type}`, 'info');
+      if (event.user) updateUserStatus(event.user);
+    });
+
+    // 初始化
+    async function init() {
+      const hash = window.location.hash;
+      if (hash.includes('access_token')) {
+        log('🔐 检测到 OAuth 回调，正在处理...', 'info');
+      }
+
+      // Supabase SDK 会自动从 URL hash 中解析 token
+      const user = await auth.initialize();
+
+      if (hash.includes('access_token')) {
+        // 清除 URL 中的敏感信息
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      if (user) {
+        log(`✅ 启动时检测到已登录: ${user.email || user.name}`, 'success');
+        updateUserStatus(user);
+      } else {
+        log(`🔧 等待登录...`);
+      }
+    }
+
+    init();
+
+    log('🔧 测试页面已就绪');
+  </script>
+</body>
+</html>
