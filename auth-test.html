@@ -92,18 +92,6 @@
   </div>
 
   <div class="section">
-    <h2>手机登录</h2>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <input type="tel" id="phone" placeholder="手机号" value="+8613800138000">
-      <button onclick="testPhoneOtp()">发送验证码</button>
-    </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-      <input type="text" id="phoneCode" placeholder="验证码">
-      <button onclick="testVerifyPhoneOtp()">验证手机验证码</button>
-    </div>
-  </div>
-
-  <div class="section">
     <h2>当前用户</h2>
     <div class="buttons">
       <button onclick="getCurrentUser()">获取当前用户</button>
@@ -192,33 +180,7 @@
       }
     };
 
-    // 手机验证码
-    window.testPhoneOtp = async function() {
-      const phone = document.getElementById('phone').value;
-      log(`发送手机验证码: ${phone}`);
-      const result = await auth.loginWithPhone(phone);
-      if (result.success) {
-        log(`✅ 验证码已发送`, 'success');
-      } else {
-        log(`❌ 发送失败: ${result.error}`, 'error');
-      }
-    };
-
-    // 手机验证码验证
-    window.testVerifyPhoneOtp = async function() {
-      const phone = document.getElementById('phone').value;
-      const code = document.getElementById('phoneCode').value;
-      log(`验证手机验证码: ${code}`);
-      const result = await auth.verifyPhoneOtp(phone, code);
-      if (result.success) {
-        log(`✅ 验证成功`, 'success');
-        updateUserStatus(result.user);
-      } else {
-        log(`❌ 验证失败: ${result.error}`, 'error');
-      }
-    };
-
-    // 获取当前用户
+     获取当前用户
     window.getCurrentUser = async function() {
       const user = await auth.getCurrentUser();
       updateUserStatus(user);
@@ -243,7 +205,6 @@
         status.innerHTML = `<span class="success">✅ 已登录</span>\n` +
           `ID: ${user.id}\n` +
           `邮箱: ${user.email || '-'}\n` +
-          `手机: ${user.phone || '-'}\n` +
           `名称: ${user.name || '-'}\n` +
           `Provider: ${user.provider || '-'}`;
       } else {

@@ -10,10 +10,15 @@ npm install
 
 # 开发模式运行
 npm run dev
+npm run dev:test
 
 # 构建
 npm run build
 
 # 生产模式运行
 npm start
+```
+
+```text
+http://localhost:3000/auth-test.html
 ```

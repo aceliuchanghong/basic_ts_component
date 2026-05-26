@@ -27,15 +27,38 @@ export class SupabaseProvider {
     const hasOAuthCallback = hash.includes('access_token');
 
     if (hasOAuthCallback) {
+      const { data, error } = await this.client.auth.getSession();
+      if (error) {
+        console.error('[Auth] OAuth callback session error:', error.message);
+      }
+
+      if (data.session) {
+        this.currentUser = this.mapUser(data.session.user);
+        await this.saveToken(data.session);
+
+        // Clean the hash from URL to avoid leaking tokens
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
+        return this.currentUser;
+      }
+
+      // Fallback: wait for auth state change event
       const user = await new Promise<User | null>((resolve) => {
         const timeout = setTimeout(() => resolve(null), 5000);
         const unsub = this.client.auth.onAuthStateChange((event, session) => {
-          if (event === 'INITIAL_SESSION' && session) {
+          if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
             clearTimeout(timeout);
             unsub.data.subscription.unsubscribe();
             const mapped = this.mapUser(session.user);
             this.currentUser = mapped;
             this.saveToken(session);
+
+            if (typeof window !== 'undefined' && window.history?.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+
             resolve(mapped);
           }
         });
