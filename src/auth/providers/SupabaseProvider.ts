@@ -6,12 +6,14 @@ import { LocalStorageAdapter } from '../storage';
 export class SupabaseProvider {
   private client: SupabaseClient;
   private storage: TokenStorageAdapter;
+  private redirectTo?: string;
   private listeners: Set<AuthEventHandler> = new Set();
   private currentUser: User | null = null;
 
   constructor(config: SupabaseConfig, storage?: TokenStorageAdapter) {
     this.client = createClient(config.url, config.anonKey);
     this.storage = storage || new LocalStorageAdapter();
+    this.redirectTo = config.redirectTo;
 
     this.client.auth.onAuthStateChange((event, session) => {
       this.handleAuthChange(event, session);
@@ -82,7 +84,7 @@ export class SupabaseProvider {
       const { data, error } = await this.client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          redirectTo: this.getRedirectTo(),
         },
       });
 
@@ -99,7 +101,7 @@ export class SupabaseProvider {
       const { data, error } = await this.client.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          redirectTo: this.getRedirectTo(),
         },
       });
 
@@ -116,7 +118,7 @@ export class SupabaseProvider {
       const { data, error } = await this.client.auth.signInWithOAuth({
         provider: 'alipay' as any,
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: this.getRedirectTo(),
         },
       });
 
@@ -133,7 +135,7 @@ export class SupabaseProvider {
       const { data, error } = await this.client.auth.signInWithOAuth({
         provider: 'wechat' as any,
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: this.getRedirectTo(),
         },
       });
 
@@ -169,7 +171,7 @@ export class SupabaseProvider {
       const { error } = await this.client.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: this.getRedirectTo(),
         },
       });
 
@@ -356,6 +358,16 @@ export class SupabaseProvider {
 
   private emit(event: AuthEvent): void {
     this.listeners.forEach((handler) => handler(event));
+  }
+
+  private getRedirectTo(): string {
+    if (this.redirectTo) return this.redirectTo;
+
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${window.location.pathname}`;
+    }
+
+    throw new Error('Auth redirect URL is required outside a browser');
   }
 
   private mapUser(user: SupabaseUser): User {
