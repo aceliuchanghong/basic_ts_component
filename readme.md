@@ -22,3 +22,8 @@ npm start
 ```text
 http://localhost:3000/auth-test.html
 ```
+
+### Payment component
+
+The reusable Stripe Checkout browser component is documented in
+[`src/payment/README.md`](src/payment/README.md).
